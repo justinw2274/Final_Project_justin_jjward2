@@ -1,0 +1,14 @@
+## Initial Brainstorming
+I brainstormed three potential ideas for this Trading Journal project, with increasing complexity.
+
+1.  **Basic Trade Logger:** A simple web app with a form to enter trade details (asset, entry/exit price, size) and a table to display them. It would calculate the profit or loss for each trade. This felt too simple for a final project.
+
+2.  **Journal with Tagging:** Everything from the first idea, but with an added feature to "tag" each trade with a specific strategy (e.g., "Mean Reversion," "Breakout"). This would allow filtering the trade history by strategy, but the analysis would still be manual.
+
+3.  **Advanced Performance Analyzer:** This version would include all of the above, plus an automated dashboard. It would calculate key performance indicators (KPIs) like win rate, average gain vs. loss, and profit factor. It would also feature data visualizations, like an equity curve chart, to provide a clear visual of account growth.
+
+## Selection Rationale
+I have selected **Idea #3, the Advanced Performance Analyzer**.
+
+As someone with a strong interest in quantitative finance, a simple log is not enough. The true value of a trading journal is its ability to provide actionable insights. By automatically calculating KPIs and visualizing performance, this tool will help identify which strategies are working and which are not. This aligns perfectly with the goal of using data science to improve trading outcomes and is a suitably challenging scope for a final project.
+
