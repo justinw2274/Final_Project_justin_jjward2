@@ -58,3 +58,21 @@ The development process will follow these steps:
 
 This strategy keeps the `main` branch clean, stable, and always in a deployable state. It isolates the development of new features, preventing unstable or in-progress code from breaking the main application. This makes it much easier to manage individual tasks, track changes, and debug issues without disrupting the entire project.
 
+
+
+#######################################
+# Django Setup
+#######################################
+
+Project Name: `journal_project`. I chose this name to serve as the main configuration container for the entire Trading Journal application.
+
+App Name: `trading_log`. This app is named specifically for its function: to manage all the models, views, and logic related to logging and analyzing trades. This keeps the core functionality modular and organized.
+
+#######################################
+# Virtual Environment Choices
+#######################################
+
+Choice: `venv`
+
+Reason: I chose `venv` because it is the standard, built-in virtual environment tool for Python 3. It requires no external installation, is lightweight, and integrates seamlessly with any workflow. It is the official recommendation from the Python community and is perfectly capable of managing all the dependencies for this Django project.
+
