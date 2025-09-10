@@ -58,3 +58,12 @@ The development process will follow these steps:
 
 This strategy keeps the `main` branch clean, stable, and always in a deployable state. It isolates the development of new features, preventing unstable or in-progress code from breaking the main application. This makes it much easier to manage individual tasks, track changes, and debug issues without disrupting the entire project.
 
+
+
+#######################################
+# Branch Usage Reflections
+#######################################
+
+I created the `feat/add-wireframes` branch to hold the initial design assets (wireframes and branching diagram). This work was done separately from the `main` branch to keep the main codebase clean and stable. The commit messages on this branch clearly document the addition of these design artifacts. Pushing the branch to GitHub makes this work visible and available for review without affecting the primary `main` branch.
+
+
