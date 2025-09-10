@@ -12,3 +12,21 @@ I have selected **Idea #3, the Advanced Performance Analyzer**.
 
 As someone with a strong interest in quantitative finance, a simple log is not enough. The true value of a trading journal is its ability to provide actionable insights. By automatically calculating KPIs and visualizing performance, this tool will help identify which strategies are working and which are not. This aligns perfectly with the goal of using data science to improve trading outcomes and is a suitably challenging scope for a final project.
 
+
+
+
+#######################################
+# Wireframe Notes
+#######################################
+
+I designed the wireframes to be clean, functional, and user-centric, focusing on providing the most critical information first.
+
+*   **login.png:** A standard, minimalist login form to ensure a low-friction entry point for the user. No unnecessary distractions.
+
+*   **dashboard.png:** The dashboard is designed with a "top-down" information hierarchy. The most important, at-a-glance metrics (KPIs) are at the very top. The equity curve is the main focus as it provides the quickest visual summary of performance over time. The detailed trade history is placed below, accessible when needed but not cluttering the primary view.
+
+*   **core_feature.png (Trade Entry Form):** The form is designed for quick and efficient data entry, which is crucial for a journal to be used consistently. All essential fields are present, and the "Save Trade" button is prominent.
+
+*   **error_state.png:** I created a simple 404 page with a clear message and a direct link back to the main dashboard. This provides a good user experience by preventing the user from getting stuck on a dead page.
+
+
