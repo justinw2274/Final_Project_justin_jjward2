@@ -30,3 +30,31 @@ I designed the wireframes to be clean, functional, and user-centric, focusing on
 *   **error_state.png:** I created a simple 404 page with a clear message and a direct link back to the main dashboard. This provides a good user experience by preventing the user from getting stuck on a dead page.
 
 
+
+
+#######################################
+# Branching Strategy
+#######################################
+
+## Strategy Choice: Feature Branching
+
+I have chosen a simple and effective **Feature Branching** model for this project. This is a standard workflow that is ideal for solo developers and teams alike.
+
+## Branch Definitions
+
+*   **`main`**: This is the primary branch of the repository. It will be kept clean and will always represent a stable, working version of the project. No direct commits will be made to `main`.
+
+*   **`feature/<feature-name>`**: All new work will be done on a dedicated feature branch. These branches will be created from `main` for a single, specific task (e.g., `feature/user-authentication` or `feature/dashboard-chart`).
+
+## Workflow
+
+The development process will follow these steps:
+1.  Create a new `feature/` branch from the `main` branch.
+2.  Perform all work and make all commits for that feature on its branch.
+3.  Once the feature is complete and tested, it will be merged back into the `main` branch.
+4.  The feature branch can then be deleted.
+
+## Rationale for this Choice
+
+This strategy keeps the `main` branch clean, stable, and always in a deployable state. It isolates the development of new features, preventing unstable or in-progress code from breaking the main application. This makes it much easier to manage individual tasks, track changes, and debug issues without disrupting the entire project.
+
