@@ -1,0 +1,204 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+
+{% block title %}{{ game }} - CourtVision Analytics{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Game Header -->
+    <div class="card mb-4 {% if game.is_featured %}featured-game{% endif %}">
+        <div class="card-body">
+            <div class="row align-items-center text-center">
+                <!-- Away Team -->
+                <div class="col-md-4">
+                    <a href="{% url 'core:team_detail' game.away_team.pk %}" class="text-decoration-none text-dark">
+                        <h4 class="text-muted">{{ game.away_team.city }}</h4>
+                        <h2 class="fw-bold">{{ game.away_team.name }}</h2>
+                        <span class="badge bg-secondary">{{ game.away_team.record }}</span>
+                        {% if game.status == 'final' %}
+                        <div class="display-4 mt-3 {% if game.away_score > game.home_score %}text-success{% endif %}">
+                            {{ game.away_score }}
+                        </div>
+                        {% endif %}
+                    </a>
+                </div>
+
+                <!-- Game Info -->
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        {% if game.status == 'final' %}
+                        <span class="badge bg-secondary fs-6">FINAL</span>
+                        {% elif game.status == 'in_progress' %}
+                        <span class="badge bg-danger fs-6">LIVE</span>
+                        {% else %}
+                        <span class="badge bg-info fs-6">{{ game.date|date:"F j, Y" }}</span>
+                        {% if game.time %}
+                        <div class="mt-1">{{ game.time|time:"g:i A" }}</div>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                    <div class="display-6 mb-3">@</div>
+
+                    <!-- Prediction Display -->
+                    {% if game.prediction_home_win_prob %}
+                    <div class="card bg-light">
+                        <div class="card-body py-3">
+                            <h6 class="text-muted mb-2">Model Prediction</h6>
+                            <div class="h4 mb-1">
+                                {% if game.prediction_home_win_prob >= 50 %}
+                                <span class="text-primary">{{ game.home_team.abbreviation }}</span> wins
+                                {% else %}
+                                <span class="text-primary">{{ game.away_team.abbreviation }}</span> wins
+                                {% endif %}
+                            </div>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div class="progress-bar bg-danger" style="width: {% widthratio game.prediction_home_win_prob 100 100 %}%">
+                                    {{ game.away_team.abbreviation }}
+                                </div>
+                                <div class="progress-bar bg-primary" style="width: {{ game.prediction_home_win_prob }}%">
+                                    {{ game.home_team.abbreviation }}
+                                </div>
+                            </div>
+                            <small class="text-muted">
+                                Confidence:
+                                <span class="{% if game.prediction_confidence >= 70 %}confidence-high{% elif game.prediction_confidence >= 50 %}confidence-medium{% else %}confidence-low{% endif %}">
+                                    {{ game.prediction_confidence }}%
+                                </span>
+                            </small>
+                            {% if game.predicted_spread %}
+                            <div class="mt-2">
+                                <small>Predicted Spread: <strong>{{ game.predicted_spread|floatformat:1 }}</strong></small>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if game.status == 'final' and game.prediction_correct is not None %}
+                    <div class="mt-3">
+                        {% if game.prediction_correct %}
+                        <span class="badge bg-success fs-6"><i class="bi bi-check-circle"></i> Prediction Correct</span>
+                        {% else %}
+                        <span class="badge bg-danger fs-6"><i class="bi bi-x-circle"></i> Prediction Incorrect</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Home Team -->
+                <div class="col-md-4">
+                    <a href="{% url 'core:team_detail' game.home_team.pk %}" class="text-decoration-none text-dark">
+                        <h4 class="text-muted">{{ game.home_team.city }}</h4>
+                        <h2 class="fw-bold">{{ game.home_team.name }}</h2>
+                        <span class="badge bg-secondary">{{ game.home_team.record }}</span>
+                        {% if game.status == 'final' %}
+                        <div class="display-4 mt-3 {% if game.home_score > game.away_score %}text-success{% endif %}">
+                            {{ game.home_score }}
+                        </div>
+                        {% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Chart & Analysis -->
+        <div class="col-lg-8">
+            <!-- Team Comparison Chart -->
+            {% if chart_data %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-bar-chart"></i> Team Comparison
+                </div>
+                <div class="card-body text-center">
+                    <img src="data:image/png;base64,{{ chart_data }}" alt="Team Comparison Chart" class="img-fluid">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Community Picks -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-people"></i> Community Picks ({{ total_picks }} votes)
+                </div>
+                <div class="card-body">
+                    {% if total_picks > 0 %}
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h5>{{ game.away_team.abbreviation }}</h5>
+                            <div class="progress" style="height: 30px;">
+                                <div class="progress-bar bg-danger" style="width: {{ pick_percentages|get_item:game.away_team.pk|default:0 }}%">
+                                    {{ pick_percentages|get_item:game.away_team.pk|default:0 }}%
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <h5>{{ game.home_team.abbreviation }}</h5>
+                            <div class="progress" style="height: 30px;">
+                                <div class="progress-bar bg-primary" style="width: {{ pick_percentages|get_item:game.home_team.pk|default:0 }}%">
+                                    {{ pick_percentages|get_item:game.home_team.pk|default:0 }}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center mb-0">No community picks yet. Be the first!</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- User Pick Form -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-hand-index"></i> Make Your Pick
+                </div>
+                <div class="card-body">
+                    {% if game.status == 'scheduled' %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">{{ form.picked_team.label }}</label>
+                            {% for radio in form.picked_team %}
+                            <div class="form-check form-check-lg mb-2">
+                                {{ radio.tag }}
+                                <label class="form-check-label ms-2" for="{{ radio.id_for_label }}">
+                                    {{ radio.choice_label }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            {% if user_pick %}Update Pick{% else %}Submit Pick{% endif %}
+                        </button>
+                    </form>
+                    {% if user_pick %}
+                    <div class="alert alert-info mt-3 mb-0">
+                        <small>
+                            <i class="bi bi-check-circle"></i>
+                            You picked <strong>{{ user_pick.picked_team.name }}</strong>
+                        </small>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="alert alert-secondary mb-0">
+                        <i class="bi bi-lock"></i>
+                        Voting is closed for this game.
+                    </div>
+                    {% if user_pick %}
+                    <div class="alert alert-info mt-3 mb-0">
+                        You picked <strong>{{ user_pick.picked_team.name }}</strong>
+                        {% if user_pick.is_correct is not None %}
+                        - {% if user_pick.is_correct %}<span class="text-success">Correct!</span>{% else %}<span class="text-danger">Incorrect</span>{% endif %}
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
