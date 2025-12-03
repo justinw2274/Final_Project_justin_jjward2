@@ -44,3 +44,6 @@ local_settings.py
 # Secrets
 secrets.json
 credentials.json
+
+# Large data files
+data/
