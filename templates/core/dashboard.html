@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - CourtVision Analytics{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4"><i class="bi bi-speedometer2"></i> Predictions Dashboard</h1>
+
+    <div class="row">
+        <!-- Today's Games -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-calendar-day"></i> Today's Games
+                </div>
+                <div class="card-body">
+                    {% for game in todays_games %}
+                    <div class="card game-card mb-3 {% if game.is_featured %}featured-game{% endif %}">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-3 text-center">
+                                    <h5 class="mb-0">{{ game.away_team.abbreviation }}</h5>
+                                    <small class="text-muted">{{ game.away_team.record }}</small>
+                                    {% if game.status == 'final' %}
+                                    <div class="h4 {% if game.away_score > game.home_score %}text-success{% endif %}">
+                                        {{ game.away_score }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 text-center">
+                                    <div class="mb-2">
+                                        {% if game.status == 'final' %}
+                                        <span class="badge bg-secondary">Final</span>
+                                        {% elif game.status == 'in_progress' %}
+                                        <span class="badge bg-danger">Live</span>
+                                        {% else %}
+                                        <span class="badge bg-info">{{ game.time|time:"g:i A" }}</span>
+                                        {% endif %}
+                                    </div>
+                                    {% if game.prediction_home_win_prob %}
+                                    <div class="mb-2">
+                                        <strong>Prediction:</strong>
+                                        {% if game.prediction_home_win_prob >= 50 %}
+                                        <span class="badge bg-primary">{{ game.home_team.abbreviation }} {{ game.prediction_home_win_prob }}%</span>
+                                        {% else %}
+                                        <span class="badge bg-primary">{{ game.away_team.abbreviation }} {% widthratio game.prediction_home_win_prob 1 -1 %}%</span>
+                                        {% endif %}
+                                        {% if game.prediction_confidence %}
+                                        <small class="d-block text-muted">Confidence: {{ game.prediction_confidence }}%</small>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                    {% if user_picks and game.id in user_picks %}
+                                    <small class="text-success"><i class="bi bi-check-circle"></i> You picked this game</small>
+                                    {% endif %}
+                                    <div class="mt-2">
+                                        <a href="{% url 'core:game_detail' game.pk %}" class="btn btn-sm btn-outline-primary">
+                                            View Details
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <h5 class="mb-0">{{ game.home_team.abbreviation }}</h5>
+                                    <small class="text-muted">{{ game.home_team.record }}</small>
+                                    {% if game.status == 'final' %}
+                                    <div class="h4 {% if game.home_score > game.away_score %}text-success{% endif %}">
+                                        {{ game.home_score }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted text-center py-4">No games scheduled for today.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Upcoming Games -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-calendar-week"></i> Upcoming Games (Next 7 Days)
+                </div>
+                <div class="card-body">
+                    {% regroup upcoming_games by date as games_by_date %}
+                    {% for date_group in games_by_date %}
+                    <h6 class="text-muted mt-3 mb-2">{{ date_group.grouper|date:"l, F j" }}</h6>
+                    {% for game in date_group.list %}
+                    <div class="card game-card mb-2">
+                        <div class="card-body py-2">
+                            <div class="row align-items-center">
+                                <div class="col-3">
+                                    <strong>{{ game.away_team.abbreviation }}</strong>
+                                </div>
+                                <div class="col-6 text-center">
+                                    <small>@</small>
+                                    {% if game.prediction_home_win_prob %}
+                                    <span class="badge bg-info ms-2">
+                                        {% if game.prediction_home_win_prob >= 50 %}
+                                        {{ game.home_team.abbreviation }}
+                                        {% else %}
+                                        {{ game.away_team.abbreviation }}
+                                        {% endif %}
+                                    </span>
+                                    {% endif %}
+                                    <a href="{% url 'core:game_detail' game.pk %}" class="btn btn-sm btn-link">Details</a>
+                                </div>
+                                <div class="col-3 text-end">
+                                    <strong>{{ game.home_team.abbreviation }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% empty %}
+                    <p class="text-muted text-center py-4">No upcoming games in the next 7 days.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Recent Results -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-clock-history"></i> Recent Results
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for game in recent_games %}
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ game.away_team.abbreviation }}</strong> {{ game.away_score }} -
+                                    {{ game.home_score }} <strong>{{ game.home_team.abbreviation }}</strong>
+                                </div>
+                                <small class="text-muted">{{ game.date|date:"M j" }}</small>
+                            </div>
+                            {% if game.prediction_correct is not None %}
+                            <small class="{% if game.prediction_correct %}text-success{% else %}text-danger{% endif %}">
+                                <i class="bi {% if game.prediction_correct %}bi-check-circle{% else %}bi-x-circle{% endif %}"></i>
+                                Prediction {% if game.prediction_correct %}correct{% else %}incorrect{% endif %}
+                            </small>
+                            {% endif %}
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item text-muted">No recent results.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-lightning"></i> Quick Actions
+                </div>
+                <div class="card-body">
+                    <a href="{% url 'core:team_list' %}" class="btn btn-outline-primary w-100 mb-2">
+                        <i class="bi bi-people"></i> View All Teams
+                    </a>
+                    <a href="{% url 'core:leaderboard' %}" class="btn btn-outline-success w-100 mb-2">
+                        <i class="bi bi-trophy"></i> Leaderboards
+                    </a>
+                    <a href="{% url 'core:export' %}" class="btn btn-outline-info w-100">
+                        <i class="bi bi-download"></i> Export Data
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
