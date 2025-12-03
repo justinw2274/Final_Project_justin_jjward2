@@ -5,6 +5,7 @@ crispy-bootstrap5>=0.7
 
 # Database
 psycopg2-binary>=2.9
+mysqlclient>=2.2
 
 # API & HTTP
 requests>=2.31

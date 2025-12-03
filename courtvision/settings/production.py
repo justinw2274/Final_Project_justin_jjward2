@@ -18,26 +18,30 @@ ALLOWED_HOSTS = [
 # Production secret key - generate a new one for production!
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'your-production-secret-key-change-me')
 
-# Database configuration
-# Option 1: SQLite (simpler, works on free PythonAnywhere)
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Database configuration - MySQL (PythonAnywhere free tier)
+# Set USE_MYSQL=true in environment to enable external database
+if os.environ.get('USE_MYSQL', 'false').lower() == 'true':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.environ.get('MYSQL_DB_NAME', 'username$courtvision'),
+            'USER': os.environ.get('MYSQL_USER', 'username'),
+            'PASSWORD': os.environ.get('MYSQL_PASSWORD', ''),
+            'HOST': os.environ.get('MYSQL_HOST', 'username.mysql.pythonanywhere-services.com'),
+            'PORT': os.environ.get('MYSQL_PORT', '3306'),
+            'OPTIONS': {
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            },
+        }
     }
-}
-
-# Option 2: PostgreSQL (uncomment for external database - requires paid account)
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': os.environ.get('DB_NAME', 'courtvision'),
-#         'USER': os.environ.get('DB_USER', ''),
-#         'PASSWORD': os.environ.get('DB_PASSWORD', ''),
-#         'HOST': os.environ.get('DB_HOST', 'localhost'),
-#         'PORT': os.environ.get('DB_PORT', '5432'),
-#     }
-# }
+else:
+    # Fallback to SQLite for simpler setup
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # Security settings
 SECURE_BROWSER_XSS_FILTER = True
