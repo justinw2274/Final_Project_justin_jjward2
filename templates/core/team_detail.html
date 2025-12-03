@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ team }} - CourtVision Analytics{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Team Header -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-2 text-center">
+                    {% if team.logo_url %}
+                    <img src="{{ team.logo_url }}" alt="{{ team.name }}" class="team-logo" style="width: 100px; height: 100px;">
+                    {% else %}
+                    <div class="bg-primary text-white rounded d-flex align-items-center justify-content-center" style="width: 100px; height: 100px; font-size: 2rem;">
+                        {{ team.abbreviation }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="col-md-7">
+                    <h1 class="mb-1">{{ team.city }} {{ team.name }}</h1>
+                    <p class="text-muted mb-2">
+                        <span class="badge bg-{% if team.conference == 'EAST' %}primary{% else %}danger{% endif %}">
+                            {{ team.get_conference_display }}
+                        </span>
+                    </p>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div class="display-4 fw-bold">{{ team.record }}</div>
+                    <small class="text-muted">Win Pct: {{ team.win_percentage }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Roster -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-people"></i> Team Roster
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Name</th>
+                                <th>Position</th>
+                                <th class="text-center">PPG</th>
+                                <th class="text-center">RPG</th>
+                                <th class="text-center">APG</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for player in roster %}
+                            <tr>
+                                <td>{{ player.jersey_number|default:"-" }}</td>
+                                <td><strong>{{ player.name }}</strong></td>
+                                <td>{{ player.get_position_display }}</td>
+                                <td class="text-center">{{ player.avg_points }}</td>
+                                <td class="text-center">{{ player.avg_rebounds }}</td>
+                                <td class="text-center">{{ player.avg_assists }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="6" class="text-center text-muted py-4">No roster data available</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Recent Games -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-clock-history"></i> Recent Games
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Date</th>
+                                <th>Opponent</th>
+                                <th class="text-center">Result</th>
+                                <th class="text-center">Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for game in recent_games %}
+                            <tr>
+                                <td>{{ game.date|date:"M j" }}</td>
+                                <td>
+                                    {% if game.home_team == team %}
+                                    vs {{ game.away_team.abbreviation }}
+                                    {% else %}
+                                    @ {{ game.home_team.abbreviation }}
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if game.winner == team %}
+                                    <span class="badge bg-success">W</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">L</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if game.home_team == team %}
+                                    {{ game.home_score }} - {{ game.away_score }}
+                                    {% else %}
+                                    {{ game.away_score }} - {{ game.home_score }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center text-muted py-4">No recent games</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Team Stats -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="bi bi-bar-chart"></i> Team Statistics
+                </div>
+                <div class="card-body">
+                    <h6>Home Games</h6>
+                    <ul class="list-unstyled">
+                        <li>Avg Points: <strong>{{ home_stats.avg_scored|floatformat:1|default:"N/A" }}</strong></li>
+                        <li>Avg Allowed: <strong>{{ home_stats.avg_allowed|floatformat:1|default:"N/A" }}</strong></li>
+                        <li>Games: <strong>{{ home_stats.total_games|default:0 }}</strong></li>
+                    </ul>
+                    <hr>
+                    <h6>Away Games</h6>
+                    <ul class="list-unstyled">
+                        <li>Avg Points: <strong>{{ away_stats.avg_scored|floatformat:1|default:"N/A" }}</strong></li>
+                        <li>Avg Allowed: <strong>{{ away_stats.avg_allowed|floatformat:1|default:"N/A" }}</strong></li>
+                        <li>Games: <strong>{{ away_stats.total_games|default:0 }}</strong></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Upcoming Games -->
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-calendar-event"></i> Upcoming Games
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for game in upcoming_games %}
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <span>
+                                    {% if game.home_team == team %}
+                                    vs {{ game.away_team.abbreviation }}
+                                    {% else %}
+                                    @ {{ game.home_team.abbreviation }}
+                                    {% endif %}
+                                </span>
+                                <small class="text-muted">{{ game.date|date:"M j" }}</small>
+                            </div>
+                            <a href="{% url 'core:game_detail' game.pk %}" class="btn btn-sm btn-outline-primary mt-1">
+                                View Prediction
+                            </a>
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item text-muted">No upcoming games</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
