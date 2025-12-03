@@ -163,6 +163,10 @@ def game_detail(request, pk):
                     game=game,
                     picked_team=picked_team
                 )
+                # Increment user's total picks count
+                profile, _ = UserProfile.objects.get_or_create(user=request.user)
+                profile.total_picks += 1
+                profile.save()
             messages.success(request, f"Your pick for {picked_team.name} has been saved!")
             return redirect('core:game_detail', pk=pk)
     else:
@@ -286,19 +290,106 @@ def leaderboard(request):
     today = timezone.now().date()
     week_ago = today - timedelta(days=7)
 
-    # Highest scoring teams (last 7 days)
+    # Highest scoring teams (last 7 days) - ordered by PPG
     high_scoring_teams = Team.objects.annotate(
         recent_home_points=Sum('home_games__home_score', filter=Q(home_games__date__gte=week_ago, home_games__status='final')),
         recent_away_points=Sum('away_games__away_score', filter=Q(away_games__date__gte=week_ago, away_games__status='final')),
+        recent_home_games=Count('home_games', filter=Q(home_games__date__gte=week_ago, home_games__status='final')),
+        recent_away_games=Count('away_games', filter=Q(away_games__date__gte=week_ago, away_games__status='final')),
     ).annotate(
-        total_recent_points=F('recent_home_points') + F('recent_away_points')
-    ).exclude(total_recent_points__isnull=True).order_by('-total_recent_points')[:10]
+        total_recent_points=F('recent_home_points') + F('recent_away_points'),
+        total_recent_games=F('recent_home_games') + F('recent_away_games'),
+    ).exclude(total_recent_games=0).exclude(total_recent_games__isnull=True)
 
-    # Conference standings
-    east_standings = Team.objects.filter(conference='EAST').order_by('-wins')
-    west_standings = Team.objects.filter(conference='WEST').order_by('-wins')
+    # Calculate PPG in Python since Django doesn't support division well
+    high_scoring_list = []
+    for team in high_scoring_teams:
+        if team.total_recent_games and team.total_recent_games > 0 and team.total_recent_points:
+            team.ppg = round(team.total_recent_points / team.total_recent_games, 1)
+            high_scoring_list.append(team)
+    high_scoring_list.sort(key=lambda x: x.ppg, reverse=True)
+    high_scoring_teams = high_scoring_list[:10]
 
-    # Model prediction accuracy
+    # Hot & Cold Teams (last 10 games record)
+    all_teams = Team.objects.all()
+    team_form_list = []
+    for team in all_teams:
+        # Get last 10 games for this team
+        home_games = list(Game.objects.filter(home_team=team, status='final').order_by('-date')[:10])
+        away_games = list(Game.objects.filter(away_team=team, status='final').order_by('-date')[:10])
+        recent_games = sorted(home_games + away_games, key=lambda g: g.date, reverse=True)[:10]
+
+        if len(recent_games) >= 5:  # Need at least 5 games
+            wins = 0
+            form = []
+            for game in recent_games:
+                if game.home_team == team:
+                    won = game.home_score > game.away_score
+                else:
+                    won = game.away_score > game.home_score
+                if won:
+                    wins += 1
+                form.append('W' if won else 'L')
+
+            team_form_list.append({
+                'team': team,
+                'wins': wins,
+                'losses': len(recent_games) - wins,
+                'games': len(recent_games),
+                'form': ''.join(form),
+                'win_pct': wins / len(recent_games)
+            })
+
+    # Sort by win percentage for hot/cold
+    team_form_list.sort(key=lambda x: x['win_pct'], reverse=True)
+    hot_teams = team_form_list[:5]
+    cold_teams = team_form_list[-5:][::-1]  # Reverse to show worst first
+
+    # Biggest Upsets - games where underdog won by largest margin
+    # Underdog = team with lower win probability prediction
+    upset_games = []
+    completed_with_predictions = Game.objects.filter(
+        status='final',
+        prediction_home_win_prob__isnull=False
+    ).select_related('home_team', 'away_team')
+
+    for game in completed_with_predictions:
+        home_prob = float(game.prediction_home_win_prob)
+        home_won = game.home_score > game.away_score
+        margin = abs(game.home_score - game.away_score)
+
+        # Check if underdog won
+        if (home_prob < 50 and home_won) or (home_prob >= 50 and not home_won):
+            # Calculate upset magnitude (lower probability = bigger upset)
+            if home_won:
+                underdog_prob = home_prob
+                winner = game.home_team
+                loser = game.away_team
+                winner_score = game.home_score
+                loser_score = game.away_score
+            else:
+                underdog_prob = 100 - home_prob
+                winner = game.away_team
+                loser = game.home_team
+                winner_score = game.away_score
+                loser_score = game.home_score
+
+            upset_games.append({
+                'game': game,
+                'winner': winner,
+                'loser': loser,
+                'winner_score': winner_score,
+                'loser_score': loser_score,
+                'margin': margin,
+                'underdog_prob': underdog_prob,
+                'upset_score': (50 - underdog_prob) + margin  # Combined upset magnitude
+            })
+
+    # Sort by upset score and get top 5
+    upset_games.sort(key=lambda x: x['upset_score'], reverse=True)
+    biggest_upsets = upset_games[:5]
+
+    # Model prediction accuracy (straight up)
     completed_games = Game.objects.filter(
         status='final',
         prediction_home_win_prob__isnull=False
@@ -307,31 +398,96 @@ def leaderboard(request):
     correct_predictions = sum(1 for g in completed_games if g.prediction_correct)
     model_accuracy = round(correct_predictions / max(total_predictions, 1) * 100, 1)
 
+    # Team search functionality
+    search_query = request.GET.get('q', '').strip()
+    searched_team = None
+    team_stats = None
+    if search_query:
+        # Search for a team
+        searched_team = Team.objects.filter(
+            Q(name__icontains=search_query) |
+            Q(city__icontains=search_query) |
+            Q(abbreviation__icontains=search_query)
+        ).first()
+
+        if searched_team:
+            # Calculate comprehensive team stats for the season
+            home_games = Game.objects.filter(home_team=searched_team, status='final')
+            away_games = Game.objects.filter(away_team=searched_team, status='final')
+
+            # Points stats
+            home_points_for = home_games.aggregate(total=Sum('home_score'))['total'] or 0
+            home_points_against = home_games.aggregate(total=Sum('away_score'))['total'] or 0
+            away_points_for = away_games.aggregate(total=Sum('away_score'))['total'] or 0
+            away_points_against = away_games.aggregate(total=Sum('home_score'))['total'] or 0
+
+            total_games = home_games.count() + away_games.count()
+            total_points_for = home_points_for + away_points_for
+            total_points_against = home_points_against + away_points_against
+
+            # Home/Away record
+            home_wins = home_games.filter(home_score__gt=F('away_score')).count()
+            home_losses = home_games.count() - home_wins
+            away_wins = away_games.filter(away_score__gt=F('home_score')).count()
+            away_losses = away_games.count() - away_wins
+
+            # Recent form (last 10 games)
+            recent_home = list(home_games.order_by('-date')[:10])
+            recent_away = list(away_games.order_by('-date')[:10])
+            recent_games = sorted(recent_home + recent_away, key=lambda g: g.date, reverse=True)[:10]
+            recent_form = []
+            for game in recent_games:
+                if game.home_team == searched_team:
+                    won = game.home_score > game.away_score
+                else:
+                    won = game.away_score > game.home_score
+                recent_form.append('W' if won else 'L')
+
+            # Upcoming games
+            upcoming_games = Game.objects.filter(
+                Q(home_team=searched_team) | Q(away_team=searched_team),
+                status='scheduled'
+            ).select_related('home_team', 'away_team').order_by('date')[:5]
+
+            team_stats = {
+                'games_played': total_games,
+                'ppg': round(total_points_for / max(total_games, 1), 1),
+                'opp_ppg': round(total_points_against / max(total_games, 1), 1),
+                'point_diff': round((total_points_for - total_points_against) / max(total_games, 1), 1),
+                'home_record': f"{home_wins}-{home_losses}",
+                'away_record': f"{away_wins}-{away_losses}",
+                'recent_form': ''.join(recent_form),
+                'upcoming_games': upcoming_games,
+            }
+
     # Top user predictors
-    top_users = UserProfile.objects.filter(
-        total_picks__gte=5
-    ).order_by('-correct_picks')[:10]
+    # Order by accuracy (for users with 10+ picks), then by total_picks for ties
+    all_predictors = list(UserProfile.objects.filter(total_picks__gte=1))
 
-    # Average point differential by conference
-    east_diff = Game.objects.filter(
-        home_team__conference='EAST',
-        status='final'
-    ).aggregate(avg_diff=Avg(F('home_score') - F('away_score')))
+    def predictor_sort_key(profile):
+        # Users with 10+ picks: sort by accuracy (descending), then total_picks (descending)
+        # Users with <10 picks: sort by total_picks only (they come after 10+ pick users)
+        if profile.total_picks >= 10:
+            # High priority (0), then by accuracy desc, then by total_picks desc
+            return (0, -profile.accuracy, -profile.total_picks)
+        else:
+            # Low priority (1), then by total_picks desc
+            return (1, 0, -profile.total_picks)
 
-    west_diff = Game.objects.filter(
-        home_team__conference='WEST',
-        status='final'
-    ).aggregate(avg_diff=Avg(F('home_score') - F('away_score')))
+    all_predictors.sort(key=predictor_sort_key)
+    top_users = all_predictors[:10]
 
     context = {
         'high_scoring_teams': high_scoring_teams,
-        'east_standings': east_standings,
-        'west_standings': west_standings,
+        'hot_teams': hot_teams,
+        'cold_teams': cold_teams,
+        'biggest_upsets': biggest_upsets,
         'model_accuracy': model_accuracy,
         'total_predictions': total_predictions,
         'top_users': top_users,
-        'east_avg_diff': east_diff['avg_diff'] or 0,
-        'west_avg_diff': west_diff['avg_diff'] or 0,
+        'search_query': search_query,
+        'searched_team': searched_team,
+        'team_stats': team_stats,
     }
     return render(request, 'core/leaderboard.html', context)
 
@@ -382,7 +538,12 @@ def export_csv(games, include_predictions, include_user_picks, user):
     # Header row
     headers = ['Date', 'Away Team', 'Home Team', 'Away Score', 'Home Score', 'Status']
     if include_predictions:
-        headers.extend(['Home Win Prob %', 'Confidence %', 'Spread', 'Prediction Correct'])
+        headers.extend([
+            'Home Win Prob %', 'Confidence %',
+            'Pred Spread', 'Pred Total', 'Pred Home Score', 'Pred Away Score',
+            'Vegas Spread', 'Vegas Total',
+            'Prediction Correct'
+        ])
     if include_user_picks:
         headers.append('Your Pick')
     writer.writerow(headers)
@@ -404,10 +565,19 @@ def export_csv(games, include_predictions, include_user_picks, user):
             game.status,
         ]
         if include_predictions:
+            # Calculate predicted total
+            pred_total = ''
+            if game.predicted_home_score and game.predicted_away_score:
+                pred_total = game.predicted_home_score + game.predicted_away_score
             row.extend([
                 game.prediction_home_win_prob or '',
                 game.prediction_confidence or '',
                 game.predicted_spread or '',
+                pred_total,
+                game.predicted_home_score or '',
+                game.predicted_away_score or '',
+                game.vegas_spread if game.vegas_spread is not None else '',
+                game.vegas_total if game.vegas_total is not None else '',
                 'Yes' if game.prediction_correct else ('No' if game.prediction_correct is False else ''),
             ])
         if include_user_picks:
@@ -435,11 +605,22 @@ def export_json(games, include_predictions, include_user_picks, user):
             'status': game.status,
         }
         if include_predictions:
+            # Calculate predicted total
+            pred_total = None
+            if game.predicted_home_score and game.predicted_away_score:
+                pred_total = game.predicted_home_score + game.predicted_away_score
             game_data['predictions'] = {
                 'home_win_probability': float(game.prediction_home_win_prob) if game.prediction_home_win_prob else None,
                 'confidence': float(game.prediction_confidence) if game.prediction_confidence else None,
                 'spread': float(game.predicted_spread) if game.predicted_spread else None,
+                'total': pred_total,
+                'home_score': game.predicted_home_score,
+                'away_score': game.predicted_away_score,
                 'correct': game.prediction_correct,
+            }
+            game_data['vegas'] = {
+                'spread': float(game.vegas_spread) if game.vegas_spread is not None else None,
+                'total': float(game.vegas_total) if game.vegas_total is not None else None,
             }
         if include_user_picks:
             game_data['user_pick'] = user_picks.get(game.id)
