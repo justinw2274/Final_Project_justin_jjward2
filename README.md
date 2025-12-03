@@ -51,13 +51,13 @@ A predictive analytics platform for NBA fans that uses historical data to foreca
 ## Screenshots
 
 ### Home Page
-![Home Page](wireframes/v1/dashboard.png)
+![Home Page](docs/wireframes/dashboard.png)
 
 ### Login Page
-![Login](wireframes/v1/login.png)
+![Login](docs/wireframes/login.png)
 
 ### Core Features
-![Core Features](wireframes/v1/core_feature.png)
+![Core Features](docs/wireframes/core_feature.png)
 
 ---
 
@@ -115,11 +115,11 @@ final_project/
 │   └── forms.py           # Custom auth forms
 ├── templates/             # HTML templates
 ├── static/                # CSS, JS, images
-├── docs/                  # Documentation
-│   ├── project_summary.md # Full project summary
-│   └── final.txt          # Reflection notes
-├── wireframes/            # UI/UX wireframes
-│   └── v1/                # Version 1 prototypes
+├── docs/                  # Documentation (per rubric requirements)
+│   ├── project_summary.md # PDF summary of all topics attempted
+│   ├── final.txt          # Reflection notes (3-5 bullets)
+│   ├── wireframes/        # UI/UX wireframes and diagrams
+│   └── branching_strategy.png
 ├── manage.py
 └── requirements.txt
 ```
@@ -128,15 +128,20 @@ final_project/
 
 ## Documentation
 
-All documentation is located in the `/docs/` folder:
-- **project_summary.md** - Complete summary of all topics implemented
-- **final.txt** - Reflection on lessons learned and challenges
+All documentation is located in the `/docs/` folder as required:
 
-Wireframes are located in `/wireframes/v1/`:
-- dashboard.png
-- login.png
-- core_feature.png
-- error_state.png
+**Required Files:**
+- **project_summary.md** - PDF summary of all topics attempted (Table 1 + Table 2 + Bonus)
+- **final.txt** - Reflection notes (key lessons, challenges, future improvements)
+
+**Wireframes & Diagrams** (`/docs/wireframes/`):
+- dashboard.png - Main dashboard wireframe
+- login.png - Login page wireframe
+- core_feature.png - Core features wireframe
+- error_state.png - Error state wireframe
+
+**Other Diagrams:**
+- branching_strategy.png - Git branching workflow diagram
 
 ---
 
