@@ -173,7 +173,7 @@ def sync_games_from_api(api_key=None, days_ahead=7, days_back=30):
                 status = 'in_progress'
 
             # Generate prediction using ML model
-            home_win_prob, confidence, spread = predict_game(home_team, away_team, game_date)
+            home_win_prob, confidence, spread, pred_home_score, pred_away_score = predict_game(home_team, away_team, game_date)
 
             game, created = Game.objects.update_or_create(
                 date=game_date,
@@ -186,6 +186,8 @@ def sync_games_from_api(api_key=None, days_ahead=7, days_back=30):
                     'prediction_home_win_prob': home_win_prob,
                     'prediction_confidence': confidence,
                     'predicted_spread': spread,
+                    'predicted_home_score': pred_home_score,
+                    'predicted_away_score': pred_away_score,
                 }
             )
 
@@ -197,6 +199,8 @@ def sync_games_from_api(api_key=None, days_ahead=7, days_back=30):
             # Update team records and Elo for completed games
             if status == 'final' and home_score is not None and away_score is not None:
                 update_team_after_game(home_team, away_team, home_score, away_score, game_date)
+                # Evaluate user picks for this game
+                evaluate_user_picks_for_game(game)
 
         except Team.DoesNotExist:
             continue
@@ -360,3 +364,33 @@ def calculate_team_advanced_stats(team, games, box_scores):
             )))
 
     team.save()
+
+
+def evaluate_user_picks_for_game(game):
+    """
+    Evaluate all user picks for a completed game and update user stats.
+    Should be called when a game status changes to 'final'.
+    Only processes picks that haven't been evaluated yet to prevent double-counting.
+    """
+    from core.models import UserPick, UserProfile
+
+    if game.status != 'final' or game.winner is None:
+        return 0
+
+    updated_count = 0
+    # Only get picks that haven't been evaluated yet
+    picks = UserPick.objects.filter(game=game, evaluated=False).select_related('user')
+
+    for pick in picks:
+        if pick.picked_team == game.winner:
+            # User got it right - increment their correct_picks
+            profile, _ = UserProfile.objects.get_or_create(user=pick.user)
+            profile.correct_picks += 1
+            profile.save()
+            updated_count += 1
+
+        # Mark pick as evaluated regardless of outcome
+        pick.evaluated = True
+        pick.save()
+
+    return updated_count
