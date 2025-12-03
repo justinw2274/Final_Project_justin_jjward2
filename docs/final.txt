@@ -1,0 +1,24 @@
+CourtVision Analytics - Final Project Reflection
+================================================
+
+Key Lessons Learned:
+--------------------
+- Django's split settings approach (base.py, development.py, production.py) provides excellent separation of concerns and makes deployment much cleaner
+- Building reusable template components with Django's template inheritance system significantly reduces code duplication
+- Implementing proper ORM queries with annotations and aggregations is essential for building analytics dashboards efficiently
+- User authentication with @login_required decorators provides a simple but effective way to protect sensitive features
+
+Challenges Faced:
+-----------------
+- Integrating external NBA API data while maintaining consistent database schema required careful planning of the sync mechanism
+- Generating dynamic charts with Matplotlib and embedding them as base64 images required understanding of the image encoding process
+- Managing user predictions and calculating community voting percentages required complex ORM queries with annotations
+- Ensuring the UI remained responsive and professional across different screen sizes with Bootstrap 5
+
+Future Improvements:
+--------------------
+- Implement real-time score updates using WebSockets or polling
+- Add machine learning model for more accurate game predictions based on historical data
+- Create a mobile app version using Django REST Framework as the backend
+- Add social features like following other users and sharing predictions
+- Implement email notifications for game reminders and prediction results
