@@ -75,6 +75,51 @@ class Team(models.Model):
     # Last game date (for rest calculations)
     last_game_date = models.DateField(null=True, blank=True)
 
+    # Streak tracking
+    current_streak = models.IntegerField(default=0, help_text="Positive=wins, negative=losses")
+    home_streak = models.IntegerField(default=0)
+    away_streak = models.IntegerField(default=0)
+
+    # Situational records
+    record_vs_above_500_wins = models.IntegerField(default=0)
+    record_vs_above_500_losses = models.IntegerField(default=0)
+    record_vs_below_500_wins = models.IntegerField(default=0)
+    record_vs_below_500_losses = models.IntegerField(default=0)
+
+    # Schedule difficulty
+    strength_of_schedule = models.DecimalField(
+        max_digits=5, decimal_places=3, default=0.500,
+        help_text="Average opponent win percentage"
+    )
+    avg_opponent_elo = models.DecimalField(
+        max_digits=7, decimal_places=1, default=1500.0
+    )
+
+    # Rolling stats (last 10 games for recent form)
+    rolling_fg_pct = models.DecimalField(max_digits=5, decimal_places=3, default=0.450)
+    rolling_3p_pct = models.DecimalField(max_digits=5, decimal_places=3, default=0.350)
+    rolling_ft_pct = models.DecimalField(max_digits=5, decimal_places=3, default=0.780)
+    rolling_orb = models.DecimalField(max_digits=5, decimal_places=1, default=10.0)
+    rolling_drb = models.DecimalField(max_digits=5, decimal_places=1, default=34.0)
+    rolling_ast = models.DecimalField(max_digits=5, decimal_places=1, default=24.0)
+    rolling_tov = models.DecimalField(max_digits=5, decimal_places=1, default=14.0)
+    rolling_stl = models.DecimalField(max_digits=5, decimal_places=1, default=7.5)
+    rolling_blk = models.DecimalField(max_digits=5, decimal_places=1, default=5.0)
+
+    # Performance trend (positive = improving)
+    points_trend = models.DecimalField(
+        max_digits=5, decimal_places=2, default=0.0,
+        help_text="Scoring trend over last 10 games"
+    )
+    defense_trend = models.DecimalField(
+        max_digits=5, decimal_places=2, default=0.0,
+        help_text="Defensive trend (negative = improving)"
+    )
+
+    # Back-to-back tracking
+    games_last_7_days = models.IntegerField(default=0)
+    back_to_backs_played = models.IntegerField(default=0)
+
     class Meta:
         ordering = ['name']
 
@@ -181,6 +226,24 @@ class Game(models.Model):
 
     is_featured = models.BooleanField(default=False, help_text="Feature this game on the homepage")
 
+    # Schedule context (calculated BEFORE game for prediction - no data leakage)
+    home_rest_days = models.IntegerField(default=2, help_text="Days since home team's last game")
+    away_rest_days = models.IntegerField(default=2, help_text="Days since away team's last game")
+    home_b2b = models.BooleanField(default=False, help_text="Home team on back-to-back")
+    away_b2b = models.BooleanField(default=False, help_text="Away team on back-to-back")
+    home_3in4 = models.BooleanField(default=False, help_text="Home team 3 games in 4 nights")
+    away_3in4 = models.BooleanField(default=False, help_text="Away team 3 games in 4 nights")
+
+    # Pre-game team snapshots (for accurate historical predictions without leakage)
+    home_elo_pre = models.DecimalField(max_digits=7, decimal_places=1, null=True, blank=True)
+    away_elo_pre = models.DecimalField(max_digits=7, decimal_places=1, null=True, blank=True)
+    home_streak_pre = models.IntegerField(default=0, help_text="Home team streak before game")
+    away_streak_pre = models.IntegerField(default=0, help_text="Away team streak before game")
+
+    # H2H context (season record before this game)
+    h2h_home_wins = models.IntegerField(default=0)
+    h2h_away_wins = models.IntegerField(default=0)
+
     class Meta:
         ordering = ['-date', 'time']
         unique_together = ['date', 'home_team', 'away_team']
@@ -205,6 +268,31 @@ class Game(models.Model):
         if self.winner is None or self.predicted_winner is None:
             return None
         return self.winner == self.predicted_winner
+
+
+class HeadToHead(models.Model):
+    """Track head-to-head records between teams for a season"""
+    team1 = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='h2h_as_team1')
+    team2 = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='h2h_as_team2')
+    season = models.CharField(max_length=10, default='2025-26')  # e.g., "2025-26"
+    team1_wins = models.IntegerField(default=0)
+    team2_wins = models.IntegerField(default=0)
+    team1_points = models.IntegerField(default=0)  # Total points scored
+    team2_points = models.IntegerField(default=0)
+    games_played = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = ['team1', 'team2', 'season']
+
+    def __str__(self):
+        return f"{self.team1.abbreviation} vs {self.team2.abbreviation} ({self.season})"
+
+    @property
+    def avg_point_diff(self):
+        """Average point differential (positive = team1 favored)"""
+        if self.games_played == 0:
+            return 0
+        return (self.team1_points - self.team2_points) / self.games_played
 
 
 class UserPick(models.Model):
