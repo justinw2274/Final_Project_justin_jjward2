@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Teams - CourtVision Analytics{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4"><i class="bi bi-people-fill"></i> NBA Teams</h1>
+
+    <div class="row">
+        <!-- Eastern Conference -->
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-trophy"></i> Eastern Conference
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover standings-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Team</th>
+                                <th class="text-center">W</th>
+                                <th class="text-center">L</th>
+                                <th class="text-center">PCT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for team in east_teams %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>
+                                    <a href="{% url 'core:team_detail' team.pk %}" class="text-decoration-none">
+                                        <strong>{{ team.abbreviation }}</strong> - {{ team.city }} {{ team.name }}
+                                    </a>
+                                </td>
+                                <td class="text-center">{{ team.wins }}</td>
+                                <td class="text-center">{{ team.losses }}</td>
+                                <td class="text-center">{{ team.win_percentage }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center text-muted">No teams found</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Western Conference -->
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header bg-danger text-white">
+                    <i class="bi bi-trophy"></i> Western Conference
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover standings-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Team</th>
+                                <th class="text-center">W</th>
+                                <th class="text-center">L</th>
+                                <th class="text-center">PCT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for team in west_teams %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>
+                                    <a href="{% url 'core:team_detail' team.pk %}" class="text-decoration-none">
+                                        <strong>{{ team.abbreviation }}</strong> - {{ team.city }} {{ team.name }}
+                                    </a>
+                                </td>
+                                <td class="text-center">{{ team.wins }}</td>
+                                <td class="text-center">{{ team.losses }}</td>
+                                <td class="text-center">{{ team.win_percentage }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center text-muted">No teams found</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
