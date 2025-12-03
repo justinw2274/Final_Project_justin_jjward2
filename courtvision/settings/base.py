@@ -20,6 +20,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # Third-party apps
+    'django_crontab',
     # Local apps
     'core.apps.CoreConfig',
     'accounts.apps.AccountsConfig',
@@ -85,3 +87,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = 'core:dashboard'
 LOGOUT_REDIRECT_URL = 'core:home'
 LOGIN_URL = 'accounts:login'
+
+# External API Keys
+ODDS_API_KEY = os.environ.get('ODDS_API_KEY', '511f477232df2e9a48860f93950fbdee')
+
+# Django-crontab scheduled tasks
+# 3:00 AM Central Time daily (server uses America/Chicago timezone)
+# To activate: python manage.py crontab add
+# To remove: python manage.py crontab remove
+# To show: python manage.py crontab show
+CRONJOBS = [
+    ('0 3 * * *', 'django.core.management.call_command', ['fetch_betting_lines']),
+]
