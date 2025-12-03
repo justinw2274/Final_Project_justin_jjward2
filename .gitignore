@@ -1,5 +1,46 @@
+# Virtual environment
 venv/
+.venv/
+env/
+
+# Python
 *.pyc
 __pycache__/
+*.pyo
+*.pyd
+.Python
+
+# Database
 db.sqlite3
+*.db
+
+# Environment
+.env
+.env.local
+*.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Static files (collected)
+staticfiles/
+
+# Media uploads
+media/
+
+# Logs
+*.log
+
+# Local settings
+local_settings.py
+
+# Secrets
+secrets.json
+credentials.json
