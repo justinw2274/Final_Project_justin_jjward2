@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load core_extras %}
 
 {% block title %}CourtVision Analytics - NBA Predictions{% endblock %}
 
@@ -49,19 +50,54 @@
                         <h3>{{ featured_game.away_team.city }}</h3>
                         <h2 class="display-5 fw-bold">{{ featured_game.away_team.name }}</h2>
                         <span class="badge bg-light text-dark">{{ featured_game.away_team.record }}</span>
+                        {% if featured_game.predicted_away_score %}
+                        <div class="display-4 mt-2 text-light opacity-75">{{ featured_game.predicted_away_score }}</div>
+                        {% endif %}
                     </div>
                     <div class="col-md-4">
                         <div class="display-6 mb-3">@</div>
                         <p class="mb-2">{{ featured_game.date|date:"F j, Y" }}</p>
+                        {% if featured_game.predicted_home_score and featured_game.predicted_away_score %}
+                        <small class="text-light opacity-75">Predicted Score</small>
+                        {% endif %}
                         {% if featured_game.prediction_home_win_prob %}
                         <div class="mt-3">
                             <span class="badge bg-success prediction-badge">
                                 {% if featured_game.prediction_home_win_prob >= 50 %}
                                 {{ featured_game.home_team.abbreviation }} {{ featured_game.prediction_home_win_prob }}%
                                 {% else %}
-                                {{ featured_game.away_team.abbreviation }} {{ 100|add:"-"|add:featured_game.prediction_home_win_prob }}%
+                                {{ featured_game.away_team.abbreviation }} {{ 100|subtract:featured_game.prediction_home_win_prob|floatformat:0 }}%
                                 {% endif %}
                             </span>
+                            {% if featured_game.prediction_confidence %}
+                            <small class="d-block text-light opacity-75 mt-1">Confidence: {{ featured_game.prediction_confidence }}%</small>
+                            {% endif %}
+                            {% if featured_game.predicted_spread or featured_game.vegas_spread is not None %}
+                            <div class="mt-2">
+                                <small class="text-light">
+                                    Spread:
+                                    <span class="text-info">{% format_spread featured_game %}</span>
+                                    {% if featured_game.vegas_spread is not None %}
+                                    <span class="mx-1">|</span>
+                                    <span class="text-warning">{% format_vegas_spread featured_game %}</span>
+                                    <span class="badge bg-warning text-dark ms-1" style="font-size: 0.6em;">Vegas</span>
+                                    {% endif %}
+                                </small>
+                            </div>
+                            {% endif %}
+                            {% if featured_game.predicted_home_score and featured_game.predicted_away_score %}
+                            <div class="mt-1">
+                                <small class="text-light">
+                                    Total:
+                                    <span class="text-info">{{ featured_game.predicted_home_score|add:featured_game.predicted_away_score }}</span>
+                                    {% if featured_game.vegas_total is not None %}
+                                    <span class="mx-1">|</span>
+                                    <span class="text-warning">{{ featured_game.vegas_total }}</span>
+                                    <span class="badge bg-warning text-dark ms-1" style="font-size: 0.6em;">Vegas</span>
+                                    {% endif %}
+                                </small>
+                            </div>
+                            {% endif %}
                         </div>
                         {% endif %}
                         {% if user.is_authenticated %}
@@ -74,6 +110,9 @@
                         <h3>{{ featured_game.home_team.city }}</h3>
                         <h2 class="display-5 fw-bold">{{ featured_game.home_team.name }}</h2>
                         <span class="badge bg-light text-dark">{{ featured_game.home_team.record }}</span>
+                        {% if featured_game.predicted_home_score %}
+                        <div class="display-4 mt-2 text-light opacity-75">{{ featured_game.predicted_home_score }}</div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -96,6 +135,9 @@
                             <div class="col-4 text-center">
                                 <strong>{{ game.away_team.abbreviation }}</strong>
                                 <small class="d-block text-muted">{{ game.away_team.record }}</small>
+                                {% if game.predicted_away_score and user.is_authenticated %}
+                                <span class="text-muted">{{ game.predicted_away_score }}</span>
+                                {% endif %}
                             </div>
                             <div class="col-4 text-center">
                                 <small class="text-muted">{{ game.date|date:"M j" }}</small>
@@ -113,6 +155,9 @@
                             <div class="col-4 text-center">
                                 <strong>{{ game.home_team.abbreviation }}</strong>
                                 <small class="d-block text-muted">{{ game.home_team.record }}</small>
+                                {% if game.predicted_home_score and user.is_authenticated %}
+                                <span class="text-muted">{{ game.predicted_home_score }}</span>
+                                {% endif %}
                             </div>
                         </div>
                     </div>

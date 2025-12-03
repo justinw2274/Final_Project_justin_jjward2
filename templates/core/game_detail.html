@@ -19,6 +19,11 @@
                         <div class="display-4 mt-3 {% if game.away_score > game.home_score %}text-success{% endif %}">
                             {{ game.away_score }}
                         </div>
+                        {% elif game.predicted_away_score %}
+                        <div class="display-5 mt-3 text-muted">
+                            {{ game.predicted_away_score }}
+                            <small class="d-block fs-6">Predicted</small>
+                        </div>
                         {% endif %}
                     </a>
                 </div>
@@ -65,9 +70,31 @@
                                     {{ game.prediction_confidence }}%
                                 </span>
                             </small>
-                            {% if game.predicted_spread %}
-                            <div class="mt-2">
-                                <small>Predicted Spread: <strong>{{ game.predicted_spread|floatformat:1 }}</strong></small>
+                            {% if game.predicted_spread or game.predicted_home_score %}
+                            <hr class="my-2">
+                            <div class="row text-center small">
+                                <div class="col-6">
+                                    <strong>Our Prediction</strong>
+                                    {% if game.predicted_spread %}
+                                    <div>Spread: <span class="text-primary">{% format_spread game %}</span></div>
+                                    {% endif %}
+                                    {% if game.predicted_home_score and game.predicted_away_score %}
+                                    <div>Total: <span class="text-primary">{{ game.predicted_home_score|add:game.predicted_away_score }}</span></div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-6">
+                                    <strong>Vegas Line</strong>
+                                    {% if game.vegas_spread is not None %}
+                                    <div>Spread: <span class="text-success">{% format_vegas_spread game %}</span></div>
+                                    {% else %}
+                                    <div class="text-muted">Spread: N/A</div>
+                                    {% endif %}
+                                    {% if game.vegas_total is not None %}
+                                    <div>Total: <span class="text-success">{{ game.vegas_total }}</span></div>
+                                    {% else %}
+                                    <div class="text-muted">Total: N/A</div>
+                                    {% endif %}
+                                </div>
                             </div>
                             {% endif %}
                         </div>
@@ -94,6 +121,11 @@
                         {% if game.status == 'final' %}
                         <div class="display-4 mt-3 {% if game.home_score > game.away_score %}text-success{% endif %}">
                             {{ game.home_score }}
+                        </div>
+                        {% elif game.predicted_home_score %}
+                        <div class="display-5 mt-3 text-muted">
+                            {{ game.predicted_home_score }}
+                            <small class="d-block fs-6">Predicted</small>
                         </div>
                         {% endif %}
                     </a>

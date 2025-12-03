@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load core_extras %}
 
 {% block title %}Dashboard - CourtVision Analytics{% endblock %}
 
@@ -25,6 +26,10 @@
                                     <div class="h4 {% if game.away_score > game.home_score %}text-success{% endif %}">
                                         {{ game.away_score }}
                                     </div>
+                                    {% elif game.predicted_away_score %}
+                                    <div class="h5 text-muted">
+                                        <small>Pred:</small> {{ game.predicted_away_score }}
+                                    </div>
                                     {% endif %}
                                 </div>
                                 <div class="col-md-6 text-center">
@@ -43,10 +48,36 @@
                                         {% if game.prediction_home_win_prob >= 50 %}
                                         <span class="badge bg-primary">{{ game.home_team.abbreviation }} {{ game.prediction_home_win_prob }}%</span>
                                         {% else %}
-                                        <span class="badge bg-primary">{{ game.away_team.abbreviation }} {% widthratio game.prediction_home_win_prob 1 -1 %}%</span>
+                                        <span class="badge bg-primary">{{ game.away_team.abbreviation }} {{ 100|subtract:game.prediction_home_win_prob|floatformat:0 }}%</span>
                                         {% endif %}
                                         {% if game.prediction_confidence %}
                                         <small class="d-block text-muted">Confidence: {{ game.prediction_confidence }}%</small>
+                                        {% endif %}
+                                        {% if game.predicted_spread or game.vegas_spread %}
+                                        <div class="mt-1">
+                                            <small class="text-muted">
+                                                Spread:
+                                                <span class="text-primary">{% format_spread game %}</span>
+                                                {% if game.vegas_spread is not None %}
+                                                <span class="mx-1">|</span>
+                                                <span class="text-success">{% format_vegas_spread game %}</span>
+                                                <span class="badge bg-secondary ms-1" style="font-size: 0.65em;">Vegas</span>
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                        {% endif %}
+                                        {% if game.predicted_home_score and game.predicted_away_score %}
+                                        <div>
+                                            <small class="text-muted">
+                                                Total:
+                                                <span class="text-primary">{{ game.predicted_home_score|add:game.predicted_away_score }}</span>
+                                                {% if game.vegas_total is not None %}
+                                                <span class="mx-1">|</span>
+                                                <span class="text-success">{{ game.vegas_total }}</span>
+                                                <span class="badge bg-secondary ms-1" style="font-size: 0.65em;">Vegas</span>
+                                                {% endif %}
+                                            </small>
+                                        </div>
                                         {% endif %}
                                     </div>
                                     {% endif %}
@@ -65,6 +96,10 @@
                                     {% if game.status == 'final' %}
                                     <div class="h4 {% if game.home_score > game.away_score %}text-success{% endif %}">
                                         {{ game.home_score }}
+                                    </div>
+                                    {% elif game.predicted_home_score %}
+                                    <div class="h5 text-muted">
+                                        <small>Pred:</small> {{ game.predicted_home_score }}
                                     </div>
                                     {% endif %}
                                 </div>
@@ -92,6 +127,9 @@
                             <div class="row align-items-center">
                                 <div class="col-3">
                                     <strong>{{ game.away_team.abbreviation }}</strong>
+                                    {% if game.predicted_away_score %}
+                                    <span class="text-muted ms-1">{{ game.predicted_away_score }}</span>
+                                    {% endif %}
                                 </div>
                                 <div class="col-6 text-center">
                                     <small>@</small>
@@ -107,6 +145,9 @@
                                     <a href="{% url 'core:game_detail' game.pk %}" class="btn btn-sm btn-link">Details</a>
                                 </div>
                                 <div class="col-3 text-end">
+                                    {% if game.predicted_home_score %}
+                                    <span class="text-muted me-1">{{ game.predicted_home_score }}</span>
+                                    {% endif %}
                                     <strong>{{ game.home_team.abbreviation }}</strong>
                                 </div>
                             </div>
