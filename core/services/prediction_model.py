@@ -80,7 +80,7 @@ class NBAPredictor:
             game: Optional Game instance with pre-computed schedule data
 
         Returns:
-            tuple: (home_win_probability, confidence, predicted_spread)
+            tuple: (home_win_probability, confidence, predicted_spread, predicted_home_score, predicted_away_score)
         """
         if game_date is None:
             game_date = date.today()
@@ -134,10 +134,17 @@ class NBAPredictor:
             home_team, away_team, home_win_prob, game_date, game
         )
 
+        # Calculate predicted scores (returns actual spread consistent with rounded scores)
+        home_score, away_score, actual_spread = self._calculate_predicted_scores(
+            home_team, away_team, spread, game
+        )
+
         return (
             Decimal(str(round(home_win_prob * 100, 2))),
             Decimal(str(round(confidence, 2))),
-            Decimal(str(round(spread, 1)))
+            Decimal(str(float(actual_spread))),
+            home_score,
+            away_score
         )
 
     def _four_factors_probability(self, home_team, away_team):
@@ -400,7 +407,80 @@ class NBAPredictor:
         away_streak = int(away_team.current_streak) if away_team.current_streak else 0
         spread += (home_streak - away_streak) * 0.2
 
-        return max(-25, min(25, spread))
+        # Cap spread at realistic Vegas limits (rarely exceeds 15-16 points)
+        return max(-16, min(16, spread))
+
+    def _calculate_predicted_scores(self, home_team, away_team, spread, game=None):
+        """
+        Calculate predicted scores for both teams.
+
+        Uses a Vegas-style approach based on research:
+        - NBA league average: ~113.5 PPG per team (227 total)
+        - Vegas totals typically range 215-235
+        - Adjustments made for matchup quality and pace
+
+        Returns:
+            tuple: (home_score, away_score) as integers
+        """
+        # League baseline (2024-25 NBA average is ~113.5 PPG)
+        LEAGUE_AVG_PPG = 113.5
+        TARGET_TOTAL = 227.0  # League average game total
+
+        # Get team offensive and defensive ratings
+        home_ortg = float(home_team.offensive_rating) if home_team.offensive_rating else self.league_avg_ortg
+        home_drtg = float(home_team.defensive_rating) if home_team.defensive_rating else self.league_avg_drtg
+        away_ortg = float(away_team.offensive_rating) if away_team.offensive_rating else self.league_avg_ortg
+        away_drtg = float(away_team.defensive_rating) if away_team.defensive_rating else self.league_avg_drtg
+
+        # Calculate expected total based on matchup
+        # Good offense + bad defense = higher total
+        # Bad offense + good defense = lower total
+        home_net = home_ortg - home_drtg  # Positive = good team
+        away_net = away_ortg - away_drtg
+
+        # Offensive/defensive matchup adjustment for total
+        # If both teams have good offense and bad defense, total goes up
+        combined_ortg = (home_ortg + away_ortg) / 2
+        combined_drtg = (home_drtg + away_drtg) / 2
+        total_adjustment = ((combined_ortg - self.league_avg_ortg) +
+                           (self.league_avg_drtg - combined_drtg)) * 0.4
+
+        # Pace adjustment for total
+        home_pace = float(home_team.pace) if home_team.pace else self.league_avg_pace
+        away_pace = float(away_team.pace) if away_team.pace else self.league_avg_pace
+        avg_pace = (home_pace + away_pace) / 2
+        pace_adjustment = (avg_pace - self.league_avg_pace) * 0.25
+
+        # Calculate predicted total
+        predicted_total = TARGET_TOTAL + total_adjustment + pace_adjustment
+
+        # Schedule adjustments to total (tired teams score less)
+        if game:
+            if game.home_b2b:
+                predicted_total -= 2.0
+            if game.away_b2b:
+                predicted_total -= 2.0
+            if game.home_3in4:
+                predicted_total -= 1.5
+            if game.away_3in4:
+                predicted_total -= 1.5
+
+        # Keep total in realistic range (215-240)
+        predicted_total = max(215, min(240, predicted_total))
+
+        # Distribute total based on spread
+        # If spread is +10 (home favored by 10), home gets 5 more than half
+        half_total = predicted_total / 2
+        home_score = round(half_total + (spread / 2))
+        away_score = round(half_total - (spread / 2))
+
+        # Ensure realistic individual score bounds (95-130)
+        home_score = max(95, min(130, home_score))
+        away_score = max(95, min(130, away_score))
+
+        # Return scores and the actual spread (derived from rounded scores for consistency)
+        actual_spread = home_score - away_score
+        return home_score, away_score, actual_spread
 
     def _logistic(self, x):
         """Logistic function to convert values to probability."""
@@ -437,7 +517,42 @@ class NBAPredictor:
         return elo_change
 
 
-def predict_game(home_team, away_team, game_date=None, game=None):
-    """Convenience function for predictions."""
+def predict_game(home_team, away_team, game_date=None, game=None, use_ml=True):
+    """
+    Convenience function for predictions.
+
+    Uses ML model when available, falls back to heuristic model.
+
+    Args:
+        home_team: Home team model instance
+        away_team: Away team model instance
+        game_date: Date of the game
+        game: Optional Game instance
+        use_ml: Whether to try ML model first (default True)
+
+    Returns:
+        tuple: (home_win_prob, confidence, spread, home_score, away_score)
+    """
+    # Try ML prediction first
+    if use_ml:
+        try:
+            from .ml_predictor import get_ml_predictor
+            ml_predictor = get_ml_predictor()
+
+            if ml_predictor.models_loaded:
+                result = ml_predictor.predict(home_team, away_team, game)
+                if result:
+                    spread, total, home_score, away_score = result
+
+                    # Calculate win probability and confidence
+                    home_win_prob = ml_predictor.calculate_win_probability(float(spread))
+                    confidence = ml_predictor.calculate_confidence(float(spread), home_team, away_team)
+
+                    return (home_win_prob, confidence, spread, home_score, away_score)
+        except Exception as e:
+            # Fall back to heuristic model
+            pass
+
+    # Fall back to heuristic model
     predictor = NBAPredictor()
     return predictor.predict_game(home_team, away_team, game_date, game)

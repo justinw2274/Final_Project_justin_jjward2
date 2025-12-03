@@ -223,6 +223,32 @@ class Game(models.Model):
         max_digits=5, decimal_places=1, null=True, blank=True,
         help_text="Predicted point spread (positive = home team favored)"
     )
+    predicted_home_score = models.IntegerField(
+        null=True, blank=True,
+        help_text="Predicted score for home team"
+    )
+    predicted_away_score = models.IntegerField(
+        null=True, blank=True,
+        help_text="Predicted score for away team"
+    )
+
+    # Vegas betting lines (for ATS/O/U tracking)
+    vegas_spread = models.DecimalField(
+        max_digits=5, decimal_places=1, null=True, blank=True,
+        help_text="Vegas spread (positive = home team favored)"
+    )
+    vegas_total = models.DecimalField(
+        max_digits=5, decimal_places=1, null=True, blank=True,
+        help_text="Vegas over/under total"
+    )
+    vegas_home_ml = models.IntegerField(
+        null=True, blank=True,
+        help_text="Vegas home team moneyline"
+    )
+    vegas_away_ml = models.IntegerField(
+        null=True, blank=True,
+        help_text="Vegas away team moneyline"
+    )
 
     is_featured = models.BooleanField(default=False, help_text="Feature this game on the homepage")
 
@@ -269,6 +295,152 @@ class Game(models.Model):
             return None
         return self.winner == self.predicted_winner
 
+    @property
+    def actual_spread(self):
+        """Actual spread (positive = home team won by X)"""
+        if self.status != 'final' or self.home_score is None:
+            return None
+        return self.home_score - self.away_score
+
+    @property
+    def actual_total(self):
+        """Actual game total"""
+        if self.status != 'final' or self.home_score is None:
+            return None
+        return self.home_score + self.away_score
+
+    @property
+    def model_ats_result(self):
+        """
+        Model's ATS result using Vegas lines.
+
+        Logic: Use our prediction to decide which side of Vegas line to bet,
+        then check if that bet would have won.
+
+        Example:
+        - Our prediction: CLE -11 (we think CLE wins by 11)
+        - Vegas line: CLE -4.5
+        - Since we predict bigger margin than Vegas, bet CLE to cover
+        - If CLE wins by 6: Vegas line was -4.5, actual margin 6 > 4.5, CLE covered → WIN
+
+        Returns 'W' (win), 'L' (loss), 'P' (push), or None
+        """
+        if self.actual_spread is None or self.predicted_spread is None:
+            return None
+        if self.vegas_spread is None:
+            return None  # Need Vegas line to evaluate bet
+
+        predicted = float(self.predicted_spread)
+        vegas = float(self.vegas_spread)
+        actual = self.actual_spread
+
+        # Determine which side to bet based on our prediction vs Vegas
+        # If we predict home wins by MORE than Vegas, bet home to cover
+        # If we predict home wins by LESS than Vegas, bet away to cover
+        bet_home = predicted > vegas
+
+        # Check if our bet won against the Vegas line
+        home_covered = actual > vegas  # Did home beat the Vegas spread?
+
+        # Handle push (actual equals Vegas line)
+        if abs(actual - vegas) < 0.5:
+            return 'P'
+
+        # Did our bet win?
+        if bet_home and home_covered:
+            return 'W'  # We bet home, home covered
+        elif not bet_home and not home_covered:
+            return 'W'  # We bet away, away covered (home didn't cover)
+        else:
+            return 'L'  # Our bet lost
+
+    @property
+    def model_ou_result(self):
+        """
+        Model's O/U result using Vegas lines.
+
+        Logic: Use our predicted total to decide over/under on Vegas total,
+        then check if that bet would have won.
+
+        Example:
+        - Our predicted total: 227
+        - Vegas total: 220
+        - Since we predict higher, bet OVER
+        - If actual total is 225: 225 > 220, over hit → WIN
+
+        Returns 'O' (over), 'U' (under), 'P' (push), or None
+        """
+        if self.actual_total is None or self.predicted_home_score is None:
+            return None
+        if self.vegas_total is None:
+            return None  # Need Vegas total to evaluate bet
+
+        predicted_total = self.predicted_home_score + self.predicted_away_score
+        vegas_total = float(self.vegas_total)
+        actual = self.actual_total
+
+        # Determine over/under based on our prediction vs Vegas
+        bet_over = predicted_total > vegas_total
+
+        # Check actual result vs Vegas line
+        went_over = actual > vegas_total
+
+        # Handle push
+        if abs(actual - vegas_total) < 0.5:
+            return 'P'
+
+        # Did our bet win?
+        if bet_over and went_over:
+            return 'O'  # We bet over, it went over → WIN (return 'O' to indicate over hit)
+        elif not bet_over and not went_over:
+            return 'U'  # We bet under, it went under → WIN (return 'U' to indicate under hit)
+        elif bet_over and not went_over:
+            return 'L'  # We bet over, it went under → LOSS
+        else:
+            return 'L'  # We bet under, it went over → LOSS
+
+    @property
+    def vegas_ats_result(self):
+        """
+        ATS result vs Vegas line (if available)
+        Returns 'W', 'L', 'P', or None
+        """
+        if self.actual_spread is None or self.vegas_spread is None:
+            return None
+
+        vegas = float(self.vegas_spread)
+        actual = self.actual_spread
+
+        diff = actual - vegas
+
+        if abs(diff) < 0.5:
+            return 'P'
+        elif diff > 0:
+            return 'W'  # Home covered vs Vegas
+        else:
+            return 'L'
+
+    @property
+    def vegas_ou_result(self):
+        """
+        O/U result vs Vegas total (if available)
+        Returns 'O', 'U', 'P', or None
+        """
+        if self.actual_total is None or self.vegas_total is None:
+            return None
+
+        vegas = float(self.vegas_total)
+        actual = self.actual_total
+
+        diff = actual - vegas
+
+        if abs(diff) < 0.5:
+            return 'P'
+        elif diff > 0:
+            return 'O'
+        else:
+            return 'U'
+
 
 class HeadToHead(models.Model):
     """Track head-to-head records between teams for a season"""
@@ -302,6 +474,7 @@ class UserPick(models.Model):
     picked_team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='user_picks')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    evaluated = models.BooleanField(default=False)  # Track if pick has been counted in user stats
 
     class Meta:
         unique_together = ['user', 'game']
@@ -332,3 +505,75 @@ class UserProfile(models.Model):
         if self.total_picks == 0:
             return 0.0
         return round((self.correct_picks / self.total_picks) * 100, 1)
+
+
+class HistoricalGame(models.Model):
+    """
+    Historical NBA game data for ML model training.
+    Stores game results and pre-game features calculated from rolling history.
+    """
+    # Game identification
+    api_game_id = models.IntegerField(unique=True, help_text="Game ID from balldontlie API")
+    date = models.DateField()
+    season = models.IntegerField(help_text="Season year (e.g., 2024 for 2024-25 season)")
+
+    # Teams (stored as abbreviations to handle historical teams)
+    home_team_abbr = models.CharField(max_length=5)
+    away_team_abbr = models.CharField(max_length=5)
+
+    # Actual scores
+    home_score = models.IntegerField()
+    away_score = models.IntegerField()
+
+    # Pre-game features (calculated from rolling history)
+    # Team win percentages going into game
+    home_win_pct = models.DecimalField(max_digits=5, decimal_places=3, null=True)
+    away_win_pct = models.DecimalField(max_digits=5, decimal_places=3, null=True)
+
+    # Rolling averages (last 10 games before this game)
+    home_ppg_l10 = models.DecimalField(max_digits=5, decimal_places=1, null=True, help_text="Home team PPG last 10")
+    away_ppg_l10 = models.DecimalField(max_digits=5, decimal_places=1, null=True, help_text="Away team PPG last 10")
+    home_papg_l10 = models.DecimalField(max_digits=5, decimal_places=1, null=True, help_text="Home team Points Allowed PG last 10")
+    away_papg_l10 = models.DecimalField(max_digits=5, decimal_places=1, null=True, help_text="Away team Points Allowed PG last 10")
+
+    # Streaks
+    home_streak = models.IntegerField(default=0, help_text="Home team streak (positive=wins)")
+    away_streak = models.IntegerField(default=0, help_text="Away team streak (positive=wins)")
+
+    # Rest days
+    home_rest_days = models.IntegerField(default=2)
+    away_rest_days = models.IntegerField(default=2)
+
+    # Head-to-head this season before game
+    h2h_home_wins = models.IntegerField(default=0)
+    h2h_away_wins = models.IntegerField(default=0)
+
+    # Home/away records going into game
+    home_home_wins = models.IntegerField(default=0)
+    home_home_losses = models.IntegerField(default=0)
+    away_away_wins = models.IntegerField(default=0)
+    away_away_losses = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ['-date']
+        indexes = [
+            models.Index(fields=['season']),
+            models.Index(fields=['date']),
+            models.Index(fields=['home_team_abbr', 'away_team_abbr']),
+        ]
+
+    def __str__(self):
+        return f"{self.away_team_abbr} @ {self.home_team_abbr} ({self.date})"
+
+    @property
+    def total_score(self):
+        return self.home_score + self.away_score
+
+    @property
+    def spread(self):
+        """Actual spread (positive = home won by X)"""
+        return self.home_score - self.away_score
+
+    @property
+    def home_won(self):
+        return self.home_score > self.away_score

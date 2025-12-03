@@ -1,7 +1,8 @@
 # Django
-Django>=4.2,<5.0
+Django>=4.2
 django-crispy-forms>=2.0
 crispy-bootstrap5>=0.7
+django-crontab>=0.7
 
 # Database (MySQL for PythonAnywhere)
 mysqlclient>=2.2
@@ -11,6 +12,10 @@ requests>=2.31
 
 # Visualization
 matplotlib>=3.7
+
+# Machine Learning
+scikit-learn>=1.3
+joblib>=1.3
 
 # Production
 whitenoise>=6.5

@@ -461,10 +461,12 @@ class Command(BaseCommand):
                 )
 
                 # Generate prediction
-                home_prob, confidence, spread = predict_game(home_team, away_team, game_date, game)
+                home_prob, confidence, spread, home_score, away_score = predict_game(home_team, away_team, game_date, game)
                 game.prediction_home_win_prob = home_prob
                 game.prediction_confidence = confidence
                 game.predicted_spread = spread
+                game.predicted_home_score = home_score
+                game.predicted_away_score = away_score
                 game.save()
 
             except Team.DoesNotExist:
