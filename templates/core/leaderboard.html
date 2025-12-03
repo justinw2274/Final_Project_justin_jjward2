@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+
+{% block title %}Analytics & Leaderboards - CourtVision Analytics{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4"><i class="bi bi-trophy"></i> Analytics & Leaderboards</h1>
+
+    <div class="row">
+        <!-- Model Performance -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <i class="bi bi-robot"></i> Model Performance
+                </div>
+                <div class="card-body text-center">
+                    <div class="display-2 fw-bold text-success">{{ model_accuracy }}%</div>
+                    <p class="text-muted">Prediction Accuracy</p>
+                    <hr>
+                    <p class="mb-0">
+                        <strong>{{ total_predictions }}</strong> predictions made
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conference Comparison -->
+        <div class="col-lg-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <i class="bi bi-bar-chart"></i> Conference Comparison
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h5 class="text-primary">Eastern Conference</h5>
+                            <p class="display-6">{{ east_avg_diff|floatformat:1 }}</p>
+                            <small class="text-muted">Avg Point Differential (Home)</small>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="text-danger">Western Conference</h5>
+                            <p class="display-6">{{ west_avg_diff|floatformat:1 }}</p>
+                            <small class="text-muted">Avg Point Differential (Home)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- High Scoring Teams -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-fire"></i> Highest Scoring Teams (Last 7 Days)
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Team</th>
+                                <th class="text-end">Total Points</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for team in high_scoring_teams %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>
+                                    <a href="{% url 'core:team_detail' team.pk %}">
+                                        {{ team.city }} {{ team.name }}
+                                    </a>
+                                </td>
+                                <td class="text-end fw-bold">{{ team.total_recent_points|default:0 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center text-muted">No data available</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top User Predictors -->
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-star"></i> Top Community Predictors
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>User</th>
+                                <th class="text-center">Correct</th>
+                                <th class="text-center">Total</th>
+                                <th class="text-end">Accuracy</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for profile in top_users %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ profile.user.username }}</td>
+                                <td class="text-center">{{ profile.correct_picks }}</td>
+                                <td class="text-center">{{ profile.total_picks }}</td>
+                                <td class="text-end fw-bold">{{ profile.accuracy }}%</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center text-muted">No users with picks yet</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conference Standings -->
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-trophy"></i> Eastern Conference Standings
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Team</th>
+                                <th class="text-center">W</th>
+                                <th class="text-center">L</th>
+                                <th class="text-end">PCT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for team in east_standings %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>
+                                    <a href="{% url 'core:team_detail' team.pk %}">
+                                        {{ team.abbreviation }} - {{ team.name }}
+                                    </a>
+                                </td>
+                                <td class="text-center">{{ team.wins }}</td>
+                                <td class="text-center">{{ team.losses }}</td>
+                                <td class="text-end">{{ team.win_percentage }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <i class="bi bi-trophy"></i> Western Conference Standings
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Team</th>
+                                <th class="text-center">W</th>
+                                <th class="text-center">L</th>
+                                <th class="text-end">PCT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for team in west_standings %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>
+                                    <a href="{% url 'core:team_detail' team.pk %}">
+                                        {{ team.abbreviation }} - {{ team.name }}
+                                    </a>
+                                </td>
+                                <td class="text-center">{{ team.wins }}</td>
+                                <td class="text-center">{{ team.losses }}</td>
+                                <td class="text-end">{{ team.win_percentage }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
