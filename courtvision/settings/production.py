@@ -10,7 +10,7 @@ DEBUG = False
 
 # Update with your PythonAnywhere username
 ALLOWED_HOSTS = [
-    'justinward.pythonanywhere.com',  # Update this with your actual username
+    'justinw2274.pythonanywhere.com',
     'localhost',
     '127.0.0.1',
 ]
@@ -24,10 +24,10 @@ if os.environ.get('USE_MYSQL', 'false').lower() == 'true':
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
-            'NAME': os.environ.get('MYSQL_DB_NAME', 'username$courtvision'),
-            'USER': os.environ.get('MYSQL_USER', 'username'),
+            'NAME': os.environ.get('MYSQL_DB_NAME', 'justinw2274$courtvision'),
+            'USER': os.environ.get('MYSQL_USER', 'justinw2274'),
             'PASSWORD': os.environ.get('MYSQL_PASSWORD', ''),
-            'HOST': os.environ.get('MYSQL_HOST', 'username.mysql.pythonanywhere-services.com'),
+            'HOST': os.environ.get('MYSQL_HOST', 'justinw2274.mysql.pythonanywhere-services.com'),
             'PORT': os.environ.get('MYSQL_PORT', '3306'),
             'OPTIONS': {
                 'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
