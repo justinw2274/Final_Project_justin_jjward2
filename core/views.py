@@ -632,3 +632,158 @@ def export_json(games, include_predictions, include_user_picks, user):
     )
     response['Content-Disposition'] = 'attachment; filename="courtvision_predictions.json"'
     return response
+
+
+# =============================================================================
+# JSON API Endpoints
+# =============================================================================
+
+def api_games(request):
+    """
+    JSON API endpoint for games data.
+    Returns structured JSON for charting and data sharing.
+
+    Query params:
+    - status: filter by status (scheduled, final, in_progress)
+    - days: number of days to look back/ahead (default 7)
+    """
+    status_filter = request.GET.get('status', None)
+    days = int(request.GET.get('days', 7))
+
+    today = timezone.now().date()
+    start_date = today - timedelta(days=days)
+    end_date = today + timedelta(days=days)
+
+    games = Game.objects.filter(
+        date__gte=start_date,
+        date__lte=end_date
+    ).select_related('home_team', 'away_team').order_by('date', 'time')
+
+    if status_filter:
+        games = games.filter(status=status_filter)
+
+    data = {
+        'count': games.count(),
+        'generated_at': timezone.now().isoformat(),
+        'games': []
+    }
+
+    for game in games:
+        game_data = {
+            'id': game.id,
+            'date': game.date.isoformat(),
+            'status': game.status,
+            'home_team': {
+                'name': game.home_team.name,
+                'abbreviation': game.home_team.abbreviation,
+                'record': game.home_team.record,
+            },
+            'away_team': {
+                'name': game.away_team.name,
+                'abbreviation': game.away_team.abbreviation,
+                'record': game.away_team.record,
+            },
+            'scores': {
+                'home': game.home_score,
+                'away': game.away_score,
+            },
+            'prediction': {
+                'home_win_prob': float(game.prediction_home_win_prob) if game.prediction_home_win_prob else None,
+                'confidence': float(game.prediction_confidence) if game.prediction_confidence else None,
+                'spread': float(game.predicted_spread) if game.predicted_spread else None,
+                'predicted_home_score': game.predicted_home_score,
+                'predicted_away_score': game.predicted_away_score,
+            },
+            'vegas': {
+                'spread': float(game.vegas_spread) if game.vegas_spread else None,
+                'total': float(game.vegas_total) if game.vegas_total else None,
+            }
+        }
+        data['games'].append(game_data)
+
+    return JsonResponse(data)
+
+
+def api_standings(request):
+    """
+    JSON API endpoint for team standings.
+    Returns structured JSON with conference standings.
+    """
+    east_teams = Team.objects.filter(conference='EAST').order_by('-wins')
+    west_teams = Team.objects.filter(conference='WEST').order_by('-wins')
+
+    def team_to_dict(team, rank):
+        return {
+            'rank': rank,
+            'name': team.name,
+            'city': team.city,
+            'abbreviation': team.abbreviation,
+            'wins': team.wins,
+            'losses': team.losses,
+            'win_pct': team.win_percentage,
+            'record': team.record,
+            'last_10': team.last_10_record,
+            'streak': team.current_streak,
+            'offensive_rating': float(team.offensive_rating),
+            'defensive_rating': float(team.defensive_rating),
+            'net_rating': team.net_rating,
+        }
+
+    data = {
+        'generated_at': timezone.now().isoformat(),
+        'eastern_conference': [team_to_dict(t, i+1) for i, t in enumerate(east_teams)],
+        'western_conference': [team_to_dict(t, i+1) for i, t in enumerate(west_teams)],
+    }
+
+    return JsonResponse(data)
+
+
+def api_team_stats(request, abbreviation):
+    """
+    JSON API endpoint for individual team statistics.
+    Returns detailed team stats for charting.
+    """
+    team = get_object_or_404(Team, abbreviation=abbreviation.upper())
+
+    # Get recent games
+    recent_games = Game.objects.filter(
+        Q(home_team=team) | Q(away_team=team),
+        status='final'
+    ).order_by('-date')[:10]
+
+    games_data = []
+    for game in recent_games:
+        is_home = game.home_team == team
+        games_data.append({
+            'date': game.date.isoformat(),
+            'opponent': game.away_team.abbreviation if is_home else game.home_team.abbreviation,
+            'home_away': 'home' if is_home else 'away',
+            'team_score': game.home_score if is_home else game.away_score,
+            'opponent_score': game.away_score if is_home else game.home_score,
+            'result': 'W' if (is_home and game.home_score > game.away_score) or
+                          (not is_home and game.away_score > game.home_score) else 'L',
+        })
+
+    data = {
+        'team': {
+            'name': team.name,
+            'city': team.city,
+            'abbreviation': team.abbreviation,
+            'conference': team.conference,
+            'record': team.record,
+            'win_pct': team.win_percentage,
+        },
+        'stats': {
+            'offensive_rating': float(team.offensive_rating),
+            'defensive_rating': float(team.defensive_rating),
+            'net_rating': team.net_rating,
+            'pace': float(team.pace),
+            'efg_pct': float(team.efg_pct),
+            'tov_pct': float(team.tov_pct),
+            'orb_pct': float(team.orb_pct),
+            'ft_rate': float(team.ft_rate),
+        },
+        'recent_games': games_data,
+    }
+
+    return JsonResponse(data)
