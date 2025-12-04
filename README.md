@@ -22,12 +22,12 @@ A predictive analytics platform for NBA fans that uses historical data and machi
 
 | # | Topic | Status |
 |---|-------|--------|
-| 1 | GitHub Repository, Environment Setup & Project Structure | ✅ |
-| 2 | Wizard of Oz Prototyping / UI/UX Planning | ✅ |
-| 3 | Models + ORM Basics | ✅ |
-| 4 | Views + Templates + URLs | ✅ |
-| 5 | User Authentication for Internal Users | ✅ |
-| 6 | Deployment (Production Setup) | ✅ |
+| 1 | GitHub Repository, Environment Setup & Project Structure | Done |
+| 2 | Wizard of Oz Prototyping / UI/UX Planning | Done |
+| 3 | Models + ORM Basics | Done |
+| 4 | Views + Templates + URLs | Done |
+| 5 | User Authentication for Internal Users | Done |
+| 6 | Deployment (Production Setup) | Done |
 
 ---
 
@@ -35,15 +35,15 @@ A predictive analytics platform for NBA fans that uses historical data and machi
 
 | # | Topic | Status | Description |
 |---|-------|--------|-------------|
-| 1 | ORM Queries + Data Summaries | ✅ | Aggregations for leaderboards, team stats, model accuracy tracking |
-| 2 | Static Files (CSS/JS Integration) | ✅ | Bootstrap 5, custom CSS styling |
-| 3 | Charts / Visualization (Matplotlib) | ✅ | Team comparison bar charts embedded as base64 |
-| 4 | Forms + Basic Input / CRUD | ✅ | User prediction forms, export options |
-| 5 | Simple JSON Endpoints / APIs | ✅ | `/api/games/`, `/api/standings/`, `/api/teams/{abbr}/` |
-| 6 | Integrate External APIs | ✅ | NBA API (balldontlie.io), The Odds API for Vegas lines |
-| 7 | Data Presentation & Export | ✅ | CSV and JSON export functionality |
-| 8 | User Authentication for External Users | ✅ | Public signup with auto-login |
-| 9 | External Databases Integration | ✅ | MySQL configuration for production |
+| 1 | ORM Queries + Data Summaries | Done | Aggregations for leaderboards, team stats, model accuracy tracking |
+| 2 | Static Files (CSS/JS Integration) | Done | Bootstrap 5, custom CSS styling |
+| 3 | Charts / Visualization (Matplotlib) | Done | Team comparison bar charts embedded as base64 |
+| 4 | Forms + Basic Input / CRUD | Done | User prediction forms, export options |
+| 5 | Simple JSON Endpoints / APIs | Done | `/api/games/`, `/api/standings/`, `/api/teams/{abbr}/` |
+| 6 | Integrate External APIs | Done | NBA API (balldontlie.io), The Odds API for Vegas lines |
+| 7 | Data Presentation & Export | Done | CSV and JSON export functionality |
+| 8 | User Authentication for External Users | Done | Public signup with auto-login |
+| 9 | External Databases Integration | Done | MySQL configuration for production |
 
 **Total: 9 add-on topics (5 required + 4 bonus)**
 
