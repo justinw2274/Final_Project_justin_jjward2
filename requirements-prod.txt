@@ -1,0 +1,19 @@
+# Minimal production requirements for PythonAnywhere
+# Saves ~150MB by excluding ML training dependencies
+
+# Django core
+Django>=4.2
+django-crispy-forms>=2.0
+crispy-bootstrap5>=0.7
+
+# Database (MySQL for PythonAnywhere)
+mysqlclient>=2.2
+
+# API & HTTP
+requests>=2.31
+
+# Visualization (needed for charts)
+matplotlib>=3.7
+
+# Production server
+whitenoise>=6.5
