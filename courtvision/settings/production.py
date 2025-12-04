@@ -8,6 +8,9 @@ import os
 
 DEBUG = False
 
+# Remove django_crontab - PythonAnywhere uses its own scheduled tasks
+INSTALLED_APPS = [app for app in INSTALLED_APPS if app != 'django_crontab']
+
 # Update with your PythonAnywhere username
 ALLOWED_HOSTS = [
     'justinw2274.pythonanywhere.com',
