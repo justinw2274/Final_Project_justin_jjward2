@@ -28,9 +28,9 @@ def home(request):
         status='scheduled'
     ).select_related('home_team', 'away_team').order_by('date', 'time')[:5]
 
-    # Conference standings
-    east_standings = Team.objects.filter(conference='EAST').order_by('-wins')[:5]
-    west_standings = Team.objects.filter(conference='WEST').order_by('-wins')[:5]
+    # Conference standings (exclude historical teams with 0-0 records)
+    east_standings = Team.objects.filter(conference='EAST').exclude(wins=0, losses=0).order_by('-wins')[:5]
+    west_standings = Team.objects.filter(conference='WEST').exclude(wins=0, losses=0).order_by('-wins')[:5]
 
     context = {
         'featured_game': featured_game,
@@ -88,8 +88,9 @@ class TeamListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['east_teams'] = Team.objects.filter(conference='EAST').order_by('-wins')
-        context['west_teams'] = Team.objects.filter(conference='WEST').order_by('-wins')
+        # Exclude historical teams with 0-0 records
+        context['east_teams'] = Team.objects.filter(conference='EAST').exclude(wins=0, losses=0).order_by('-wins')
+        context['west_teams'] = Team.objects.filter(conference='WEST').exclude(wins=0, losses=0).order_by('-wins')
         return context
 
 
@@ -311,7 +312,8 @@ def leaderboard(request):
     high_scoring_teams = high_scoring_list[:10]
 
     # Hot & Cold Teams (last 10 games record)
-    all_teams = Team.objects.all()
+    # Exclude historical teams with 0-0 records
+    all_teams = Team.objects.exclude(wins=0, losses=0)
     team_form_list = []
     for team in all_teams:
         # Get last 10 games for this team
@@ -709,8 +711,9 @@ def api_standings(request):
     JSON API endpoint for team standings.
     Returns structured JSON with conference standings.
     """
-    east_teams = Team.objects.filter(conference='EAST').order_by('-wins')
-    west_teams = Team.objects.filter(conference='WEST').order_by('-wins')
+    # Exclude historical teams with 0-0 records
+    east_teams = Team.objects.filter(conference='EAST').exclude(wins=0, losses=0).order_by('-wins')
+    west_teams = Team.objects.filter(conference='WEST').exclude(wins=0, losses=0).order_by('-wins')
 
     def team_to_dict(team, rank):
         return {
