@@ -114,15 +114,28 @@ def sync_teams_from_api(api_key=None):
         'West': 'WEST',
     }
 
+    # Correct team names that API returns incorrectly
+    name_corrections = {
+        'WAS': ('Wizards', 'Washington'),  # API returns "Capitols"
+    }
+
     created_count = 0
     for api_team in api_teams:
         conference = conference_map.get(api_team.get('conference'), 'EAST')
+        abbr = api_team.get('abbreviation')
+
+        # Use corrected name if available, otherwise use API data
+        if abbr in name_corrections:
+            name, city = name_corrections[abbr]
+        else:
+            name = api_team.get('name')
+            city = api_team.get('city')
 
         team, created = Team.objects.update_or_create(
-            abbreviation=api_team.get('abbreviation'),
+            abbreviation=abbr,
             defaults={
-                'name': api_team.get('name'),
-                'city': api_team.get('city'),
+                'name': name,
+                'city': city,
                 'conference': conference,
             }
         )
