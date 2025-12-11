@@ -5,6 +5,7 @@ from django.views.generic import ListView, DetailView
 from django.db.models import Avg, Sum, Count, Q, F
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
+from django.utils.timezone import localdate, localtime
 from datetime import timedelta
 import csv
 import json
@@ -19,12 +20,12 @@ def home(request):
     """Landing page with featured game of the night"""
     featured_game = Game.objects.filter(
         is_featured=True,
-        date__gte=timezone.now().date()
+        date__gte=localdate()
     ).select_related('home_team', 'away_team').first()
 
     # Get upcoming games for preview
     upcoming_games = Game.objects.filter(
-        date__gte=timezone.now().date(),
+        date__gte=localdate(),
         status='scheduled'
     ).select_related('home_team', 'away_team').order_by('date', 'time')[:5]
 
@@ -44,7 +45,7 @@ def home(request):
 @login_required
 def dashboard(request):
     """Main dashboard showing games with predictions"""
-    today = timezone.now().date()
+    today = localdate()
 
     # Get today's games
     todays_games = Game.objects.filter(
@@ -117,7 +118,7 @@ class TeamDetailView(DetailView):
         context['upcoming_games'] = Game.objects.filter(
             Q(home_team=team) | Q(away_team=team),
             status='scheduled',
-            date__gte=timezone.now().date()
+            date__gte=localdate()
         ).select_related('home_team', 'away_team').order_by('date')[:5]
 
         # Team stats
@@ -288,7 +289,7 @@ def generate_team_comparison_chart(game):
 @login_required
 def leaderboard(request):
     """Leaderboards and analytics page"""
-    today = timezone.now().date()
+    today = localdate()
     week_ago = today - timedelta(days=7)
 
     # Highest scoring teams (last 7 days) - ordered by PPG
@@ -506,7 +507,7 @@ def export_data(request):
             include_user_picks = form.cleaned_data['include_user_picks']
 
             # Determine date filter
-            today = timezone.now().date()
+            today = localdate()
             if date_range == 'week':
                 start_date = today - timedelta(days=7)
             elif date_range == 'month':
@@ -652,7 +653,7 @@ def api_games(request):
     status_filter = request.GET.get('status', None)
     days = int(request.GET.get('days', 7))
 
-    today = timezone.now().date()
+    today = localdate()
     start_date = today - timedelta(days=days)
     end_date = today + timedelta(days=days)
 
