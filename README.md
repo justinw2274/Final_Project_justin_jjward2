@@ -52,10 +52,11 @@ A predictive analytics platform for NBA fans that uses historical data and machi
 ## Screenshots
 
 Screenshots of the deployed application are available in the `/docs/wireframes/` folder:
+- `home.png` - Landing page with featured games and standings
 - `dashboard.png` - Main dashboard with game predictions
-- `login.png` - User authentication page
-- `core_feature.png` - Core analytics features
-- `error_state.png` - Error handling UI
+- `analytics.png` - Analytics and leaderboard page
+- `teams.png` - Team listing and standings
+- `export.png` - Data export functionality
 
 ---
 
@@ -146,14 +147,15 @@ Returns detailed team stats and recent game results.
 All documentation is located in the `/docs/` folder as required:
 
 **Required Files:**
-- **project_summary.md** - Summary of all topics attempted (Table 1 + Table 2 + Bonus)
+- **project_summary.pdf** - Summary of all topics attempted (Table 1 + Table 2 + Bonus)
 - **final.txt** - Reflection notes (key lessons, challenges, future improvements)
 
 **Wireframes & Diagrams** (`/docs/wireframes/`):
-- dashboard.png - Main dashboard wireframe
-- login.png - Login page wireframe
-- core_feature.png - Core features wireframe
-- error_state.png - Error state wireframe
+- home.png - Landing page screenshot
+- dashboard.png - Main dashboard screenshot
+- analytics.png - Analytics page screenshot
+- teams.png - Teams listing screenshot
+- export.png - Export functionality screenshot
 
 **Other Diagrams:**
 - branching_strategy.png - Git branching workflow diagram
