@@ -175,6 +175,14 @@ def sync_games_from_api(api_key=None, days_ahead=7, days_back=30):
             # Generate prediction using ML model
             home_win_prob, confidence, spread, pred_home_score, pred_away_score = predict_game(home_team, away_team, game_date)
 
+            # Check if game already exists and its current status
+            existing_game = Game.objects.filter(
+                date=game_date,
+                home_team=home_team,
+                away_team=away_team
+            ).first()
+            was_already_final = existing_game and existing_game.status == 'final'
+
             game, created = Game.objects.update_or_create(
                 date=game_date,
                 home_team=home_team,
@@ -196,8 +204,8 @@ def sync_games_from_api(api_key=None, days_ahead=7, days_back=30):
             else:
                 updated_count += 1
 
-            # Update team records and Elo for completed games
-            if status == 'final' and home_score is not None and away_score is not None:
+            # Update team records and Elo only when game BECOMES final (not already final)
+            if status == 'final' and not was_already_final and home_score is not None and away_score is not None:
                 update_team_after_game(home_team, away_team, home_score, away_score, game_date)
                 # Evaluate user picks for this game
                 evaluate_user_picks_for_game(game)
@@ -224,6 +232,10 @@ def update_team_after_game(home_team, away_team, home_score, away_score, game_da
         winner = away_team
         loser = home_team
         margin = away_score - home_score
+
+    # Update win/loss records
+    winner.wins += 1
+    loser.losses += 1
 
     # Update Elo ratings
     predictor.update_elo_after_game(winner, loser, home_team, margin)
